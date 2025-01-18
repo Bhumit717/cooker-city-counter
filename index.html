@@ -104,8 +104,8 @@
         let listening = false;
         let clickCount = 0; // Track number of clicks
 
-        // Web Audio API setup
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        // Declare the AudioContext globally, but don't start it until a user gesture
+        let audioContext;
         let analyser, microphone, dataArray;
 
         startCounterButton.addEventListener('click', async () => {
@@ -121,7 +121,10 @@
             setupDiv.style.display = 'none';
             counterDiv.style.display = 'block';
 
-            // Start audio processing
+            // Initialize AudioContext and resume it after user gesture
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            await audioContext.resume(); // Resume or create AudioContext after click
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 microphone = audioContext.createMediaStreamSource(stream);
