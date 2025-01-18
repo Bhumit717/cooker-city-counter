@@ -85,38 +85,62 @@
             <button id="stopSound" style="display: none;">Stop Sound</button>
         </div>
 
-        <!-- New Audio link -->
-        <audio id="alertSound" src="https://s19.aconvert.com/convert/p3r68-cdx67/1ww79-l4zze.mp3" preload="auto" loop></audio>
+        <!-- YouTube Player Div -->
+        <div id="player"></div>
     </div>
 
-    <!-- Google Analytics code -->
+    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-T2S8WD7DY1"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-T2S8WD7DY1');
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-T2S8WD7DY1');
     </script>
 
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
+        let player;
+        let targetCount = 0;
+        let currentCount = 0;
+        let listening = false;
+        let audioContext, analyser, microphone, dataArray;
+
         const setupDiv = document.getElementById('setupDiv');
         const counterDiv = document.getElementById('counterDiv');
         const targetCountInput = document.getElementById('targetCount');
         const startCounterButton = document.getElementById('startCounter');
         const currentCountDisplay = document.getElementById('currentCount');
         const stopSoundButton = document.getElementById('stopSound');
-        const alertSound = document.getElementById('alertSound');
         const amplitudeLevel = document.getElementById('amplitudeLevel');
 
-        let targetCount = 0;
-        let currentCount = 0;
-        let listening = false;
-        let clickCount = 0; // Track number of clicks
+        // Initialize YouTube player
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                height: '0',
+                width: '0',
+                videoId: 'tM4_UoRfrYM',  // Replace with your YouTube video ID
+                events: {
+                    onReady: onPlayerReady,
+                    onStateChange: onPlayerStateChange
+                },
+                playerVars: {
+                    autoplay: 0,
+                    controls: 0
+                }
+            });
+        }
 
-        // Declare the AudioContext globally, but don't start it until a user gesture
-        let audioContext;
-        let analyser, microphone, dataArray;
+        function onPlayerReady() {
+            console.log('YouTube Player is ready.');
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                player.playVideo(); // Replay audio when it ends
+            }
+        }
 
         startCounterButton.addEventListener('click', async () => {
             targetCount = parseInt(targetCountInput.value, 10);
@@ -131,20 +155,18 @@
             setupDiv.style.display = 'none';
             counterDiv.style.display = 'block';
 
-            // Initialize AudioContext and resume it after user gesture
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            await audioContext.resume(); // Resume or create AudioContext after click
-
             try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 microphone = audioContext.createMediaStreamSource(stream);
+
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 256;
 
                 const bufferLength = analyser.frequencyBinCount;
                 dataArray = new Uint8Array(bufferLength);
-                microphone.connect(analyser);
 
+                microphone.connect(analyser);
                 listening = true;
                 processAudio();
             } catch (err) {
@@ -158,63 +180,42 @@
 
             analyser.getByteTimeDomainData(dataArray);
 
-            // Calculate amplitude (average sound intensity)
             let totalAmplitude = 0;
             for (let i = 0; i < dataArray.length; i++) {
-                totalAmplitude += Math.abs(dataArray[i] - 128); // Normalize based on 128 (resting value)
+                totalAmplitude += Math.abs(dataArray[i] - 128); // Normalize based on 128
             }
-            const normalizedAmplitude = (totalAmplitude / dataArray.length) / 128 * 100; // Normalize to percentage
+            const normalizedAmplitude = (totalAmplitude / dataArray.length) / 128 * 100;
 
-            amplitudeLevel.style.width = `${normalizedAmplitude}%`; // Show in the meter
+            amplitudeLevel.style.width = `${normalizedAmplitude}%`;
 
-            // Adjust threshold to detect louder sounds or voice
-            if (normalizedAmplitude > 20) { // Lowered threshold for detecting normal voice or sound
+            if (normalizedAmplitude > 20) {
                 currentCount++;
                 currentCountDisplay.textContent = currentCount;
 
-                if (currentCount >= targetCount) {
-                    alertSound.play().catch(error => {
-                        // Handle the error if sound doesn't play
-                        console.error("Sound play failed:", error);
-                    });
+                // Play sound only when target is reached
+                if (currentCount >= targetCount && player) {
+                    player.playVideo(); // Play YouTube audio when target is reached
                     stopSoundButton.style.display = 'inline-block';
-                    listening = false; // Stop further processing
+                    listening = false; // Stop further listening
                 }
             }
 
-            // Continue processing
-            requestAnimationFrame(processAudio);
+            if (listening) {
+                requestAnimationFrame(processAudio);
+            }
         };
 
         stopSoundButton.addEventListener('click', () => {
-            alertSound.pause();
-            alertSound.currentTime = 0;
+            if (player) {
+                player.pauseVideo(); // Pause YouTube audio when stop button is clicked
+            }
             stopSoundButton.style.display = 'none';
         });
-
-        // Handle click event for odd clicks to play ad
-        document.body.addEventListener('click', () => {
-            clickCount++;
-            if (clickCount % 2 !== 0) {
-                // On odd clicks, load and execute the ad script
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                script.src = '//pl25547830.profitablecpmrate.com/08/2f/ee/082fee85911d9d41d4b61741c37eb291.js';
-                document.body.appendChild(script);
-            }
-        });
-
-        // Add second ad at the bottom of the page
-        window.addEventListener('load', () => {
-            const adScript = document.createElement('script');
-            adScript.async = true;
-            adScript.src = "//pl25587544.profitablecpmrate.com/406a0773c0ab617918717e9f52000dcc/invoke.js";
-            document.body.appendChild(adScript);
-
-            const adContainer = document.createElement('div');
-            adContainer.id = "container-406a0773c0ab617918717e9f52000dcc";
-            document.body.appendChild(adContainer);
-        });
     </script>
+
+    <!-- Ads -->
+    <script async src="//pl25547830.profitablecpmrate.com/08/2f/ee/082fee85911d9d41d4b61741c37eb291.js"></script>
+    <div id="container-406a0773c0ab617918717e9f52000dcc"></div>
+    <script async src="//pl25587544.profitablecpmrate.com/406a0773c0ab617918717e9f52000dcc/invoke.js"></script>
 </body>
 </html>
