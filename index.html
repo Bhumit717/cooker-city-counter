@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooker City Counter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            color: #fff;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            margin: 50px auto;
+            max-width: 500px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+        }
+        h1, h2, p {
+            margin: 20px 0;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        input {
+            width: 90%;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4facfe;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #00f2fe;
+        }
+        #stopSound {
+            background: #ff4b5c;
+        }
+        #stopSound:hover {
+            background: #ff6f61;
+        }
+        #amplitudeMeter {
+            width: 100%;
+            height: 20px;
+            background: #444;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 20px;
+            position: relative;
+        }
+        #amplitudeLevel {
+            width: 0;
+            height: 100%;
+            background: #00ff00;
+            transition: width 0.05s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cooker City Counter</h1>
+        <div id="setupDiv">
+            <label for="targetCount">Set Target Count:</label>
+            <input type="number" id="targetCount" placeholder="Enter target count"><br>
+            <button id="startCounter">Start Counting</button>
+        </div>
+
+        <div id="counterDiv" style="display: none;">
+            <h2>Listening for Cooker Cities...</h2>
+            <p>City Count: <span id="currentCount">0</span></p>
+            <div id="amplitudeMeter">
+                <div id="amplitudeLevel"></div>
+            </div>
+            <button id="stopSound" style="display: none;">Stop Sound</button>
+        </div>
+
+        <!-- New Audio link -->
+        <audio id="alertSound" src="https://s19.aconvert.com/convert/p3r68-cdx67/1ww79-l4zze.mp3" preload="auto" loop></audio>
+    </div>
+
+    <script>
+        const setupDiv = document.getElementById('setupDiv');
+        const counterDiv = document.getElementById('counterDiv');
+        const targetCountInput = document.getElementById('targetCount');
+        const startCounterButton = document.getElementById('startCounter');
+        const currentCountDisplay = document.getElementById('currentCount');
+        const stopSoundButton = document.getElementById('stopSound');
+        const alertSound = document.getElementById('alertSound');
+        const amplitudeLevel = document.getElementById('amplitudeLevel');
+
+        let targetCount = 0;
+        let currentCount = 0;
+        let listening = false;
+        let clickCount = 0; // Track number of clicks
+
+        // Web Audio API setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let analyser, microphone, dataArray;
+
+        startCounterButton.addEventListener('click', async () => {
+            targetCount = parseInt(targetCountInput.value, 10);
+
+            if (isNaN(targetCount) || targetCount <= 0) {
+                alert('Please enter a valid target count.');
+                return;
+            }
+
+            currentCount = 0;
+            currentCountDisplay.textContent = currentCount;
+            setupDiv.style.display = 'none';
+            counterDiv.style.display = 'block';
+
+            // Start audio processing
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                microphone = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                microphone.connect(analyser);
+
+                listening = true;
+                processAudio();
+            } catch (err) {
+                alert('Error accessing the microphone. Please allow microphone access and try again.');
+                console.error(err);
+            }
+        });
+
+        const processAudio = () => {
+            if (!listening) return;
+
+            analyser.getByteTimeDomainData(dataArray);
+
+            // Calculate amplitude (average sound intensity)
+            let totalAmplitude = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                totalAmplitude += Math.abs(dataArray[i] - 128); // Normalize based on 128 (resting value)
+            }
+            const normalizedAmplitude = (totalAmplitude / dataArray.length) / 128 * 100; // Normalize to percentage
+
+            amplitudeLevel.style.width = `${normalizedAmplitude}%`; // Show in the meter
+
+            // Detect a loud "city" sound based on reduced amplitude threshold (for a quieter sound)
+            if (normalizedAmplitude > 5) { // Lowered threshold for detection
+                currentCount++;
+                currentCountDisplay.textContent = currentCount;
+
+                if (currentCount >= targetCount) {
+                    alertSound.play().catch(error => {
+                        // Handle the error if sound doesn't play
+                        console.error("Sound play failed:", error);
+                    });
+                    stopSoundButton.style.display = 'inline-block';
+                    listening = false; // Stop further processing
+                }
+            }
+
+            // Continue processing
+            requestAnimationFrame(processAudio);
+        };
+
+        stopSoundButton.addEventListener('click', () => {
+            alertSound.pause();
+            alertSound.currentTime = 0;
+            stopSoundButton.style.display = 'none';
+        });
+
+        // Handle click event for odd clicks to play ad
+        document.body.addEventListener('click', () => {
+            clickCount++;
+            if (clickCount % 2 !== 0) {
+                // On odd clicks, load and execute the ad script
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = '//pl25547830.profitablecpmrate.com/08/2f/ee/082fee85911d9d41d4b61741c37eb291.js';
+                document.body.appendChild(script);
+            }
+        });
+    </script>
+</body>
+</html>
