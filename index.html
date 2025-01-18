@@ -104,6 +104,11 @@
         let listening = false;
         let clickCount = 0; // Track number of clicks
 
+        // Check if the site is served over HTTPS
+        if (window.location.protocol !== 'https:') {
+            alert("This site needs to be served over HTTPS for microphone access to work.");
+        }
+
         // Web Audio API setup
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         let analyser, microphone, dataArray;
