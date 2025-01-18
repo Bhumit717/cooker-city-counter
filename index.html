@@ -104,11 +104,6 @@
         let listening = false;
         let clickCount = 0; // Track number of clicks
 
-        // Check if the site is served over HTTPS
-        if (window.location.protocol !== 'https:') {
-            alert("This site needs to be served over HTTPS for microphone access to work.");
-        }
-
         // Web Audio API setup
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         let analyser, microphone, dataArray;
@@ -159,8 +154,8 @@
 
             amplitudeLevel.style.width = `${normalizedAmplitude}%`; // Show in the meter
 
-            // Detect a loud "city" sound based on reduced amplitude threshold (for a quieter sound)
-            if (normalizedAmplitude > 5) { // Lowered threshold for detection
+            // Adjust threshold to detect louder sounds or voice
+            if (normalizedAmplitude > 20) { // Lowered threshold for detecting normal voice or sound
                 currentCount++;
                 currentCountDisplay.textContent = currentCount;
 
