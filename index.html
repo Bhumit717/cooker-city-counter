@@ -105,7 +105,7 @@
         let targetCount = 0;
         let currentCount = 0;
         let listening = false;
-        let audioContext, analyser, microphone, dataArray;
+        let audioContext, analyser, microphone, dataArray, prevAmplitude = 0;
 
         const setupDiv = document.getElementById('setupDiv');
         const counterDiv = document.getElementById('counterDiv');
@@ -188,17 +188,22 @@
 
             amplitudeLevel.style.width = `${normalizedAmplitude}%`;
 
-            if (normalizedAmplitude > 20) {
+            // Check if amplitude crosses threshold (to simulate "city ring")
+            const threshold = 40; // Threshold for counting a "city ring"
+
+            if (normalizedAmplitude > threshold && prevAmplitude <= threshold) {
+                // Only increment when the amplitude crosses the threshold upwards
                 currentCount++;
                 currentCountDisplay.textContent = currentCount;
 
                 // Play sound only when target is reached
-                if (currentCount >= targetCount && player) {
+                if (currentCount >= targetCount) {
                     player.playVideo(); // Play YouTube audio when target is reached
                     stopSoundButton.style.display = 'inline-block';
                     listening = false; // Stop further listening
                 }
             }
+            prevAmplitude = normalizedAmplitude;
 
             if (listening) {
                 requestAnimationFrame(processAudio);
@@ -211,11 +216,31 @@
             }
             stopSoundButton.style.display = 'none';
         });
+
+        // Handle click event for odd clicks to play ad
+        document.body.addEventListener('click', () => {
+            clickCount++;
+            if (clickCount % 2 !== 0) {
+                // On odd clicks, load and execute the ad script
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = '//pl25547830.profitablecpmrate.com/08/2f/ee/082fee85911d9d41d4b61741c37eb291.js';
+                document.body.appendChild(script);
+            }
+        });
+
+        // Add second ad at the bottom of the page
+        window.addEventListener('load', () => {
+            const adScript = document.createElement('script');
+            adScript.async = true;
+            adScript.src = "//pl25587544.profitablecpmrate.com/406a0773c0ab617918717e9f52000dcc/invoke.js";
+            document.body.appendChild(adScript);
+
+            const adContainer = document.createElement('div');
+            adContainer.id = "container-406a0773c0ab617918717e9f52000dcc";
+            document.body.appendChild(adContainer);
+        });
     </script>
 
-    <!-- Ads -->
-    <script async src="//pl25547830.profitablecpmrate.com/08/2f/ee/082fee85911d9d41d4b61741c37eb291.js"></script>
-    <div id="container-406a0773c0ab617918717e9f52000dcc"></div>
-    <script async src="//pl25587544.profitablecpmrate.com/406a0773c0ab617918717e9f52000dcc/invoke.js"></script>
 </body>
 </html>
